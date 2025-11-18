@@ -13,13 +13,13 @@ React Native library to get installed UPI apps and launch them with intents on A
 ## Installation
 
 ```sh
-npm install react-native-upi-app-launcher
+npm install @lokal-dev/react-native-upi-app-launcher
 ```
 
 or
 
 ```sh
-yarn add react-native-upi-app-launcher
+yarn add @lokal-dev/react-native-upi-app-launcher
 ```
 
 ### Android Setup
@@ -34,7 +34,7 @@ Add the plugin to your `app.json` or `app.config.js`:
 
 ```json
 {
-  "plugins": ["react-native-upi-app-launcher"]
+  "plugins": ["@lokal-dev/react-native-upi-app-launcher"]
 }
 ```
 
@@ -49,7 +49,7 @@ npx expo prebuild
 ### Basic Example
 
 ```tsx
-import UpiAppLauncher, { LaunchResult } from 'react-native-upi-app-launcher';
+import UpiAppLauncher, { LaunchResult } from '@lokal-dev/react-native-upi-app-launcher';
 
 // Check if available (Android only)
 if (!UpiAppLauncher.isAvailable()) {
@@ -122,6 +122,8 @@ Launch a UPI app with the given URL.
 
 ## UPI URL Format
 
+### Payment URL
+
 Standard UPI payment URL format:
 
 ```
@@ -133,6 +135,45 @@ Example:
 ```
 upi://pay?pa=merchant@upi&pn=Test%20Merchant&am=100.00&cu=INR&tn=Test%20Payment
 ```
+
+### Subscription/Autopay (Mandate) URL
+
+For recurring payments and subscriptions:
+
+```
+upi://mandate?pa=<payee_address>&pn=<payee_name>&am=<amount>&cu=<currency>&tn=<transaction_note>&mc=<merchant_code>&mam=<max_amount>&mtu=<max_amount_unit>&tr=<transaction_ref>&validity=<validity_days>
+```
+
+Example:
+
+```tsx
+// Launch subscription setup
+const result = await UpiAppLauncher.launchUpiApp({
+  packageName: 'com.phonepe.app', // Use an app that supports subscriptions
+  url: 'upi://mandate?pa=merchant@upi&pn=Subscription&am=100.00&cu=INR&tn=Monthly%20Subscription&mam=500.00&validity=365',
+});
+
+// Check if app supports subscriptions before launching
+const subscriptionApps = await UpiAppLauncher.getSubscriptionSupportedApps();
+if (subscriptionApps.length > 0) {
+  await UpiAppLauncher.launchUpiApp({
+    packageName: subscriptionApps[0].packageName,
+    url: 'upi://mandate?pa=merchant@upi&am=100.00&tn=Subscription',
+  });
+}
+```
+
+**Mandate Parameters:**
+- `pa` - Payee address (VPA)
+- `pn` - Payee name
+- `am` - Amount
+- `cu` - Currency (INR)
+- `tn` - Transaction note
+- `mc` - Merchant code (optional)
+- `mam` - Maximum amount per transaction (optional)
+- `mtu` - Maximum amount unit (optional)
+- `tr` - Transaction reference (optional)
+- `validity` - Validity in days (optional)
 
 ## Requirements
 
