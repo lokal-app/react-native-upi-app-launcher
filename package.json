@@ -16,11 +16,7 @@
     "src",
     "lib",
     "android",
-    "ios",
-    "cpp",
-    "*.podspec",
-    "react-native.config.js",
-    "!ios/build",
+    "app.plugin.js",
     "!android/build",
     "!android/gradle",
     "!android/gradlew",
@@ -33,21 +29,23 @@
   ],
   "scripts": {
     "example": "yarn workspace react-native-upi-app-launcher-example",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
+    "clean": "del-cli android/build example/android/build example/android/app/build lib",
     "prepare": "bob build",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\""
   },
   "keywords": [
     "react-native",
-    "ios",
-    "android"
+    "android",
+    "upi",
+    "payment",
+    "intent"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/lokal-app/react-native-upi-app-launcher.git"
   },
-  "author": "Ajit Patel <ajit@getlokalapp.com> (https://github.com/ajitpatel28)",
+  "author": "Ajit Patel <ajit@getlokalapp.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/lokal-app/react-native-upi-app-launcher/issues"
@@ -109,6 +107,7 @@
       "javaPackageName": "com.upiapplauncher"
     }
   },
+  "app.plugin.js": "./app.plugin.js",
   "prettier": {
     "quoteProps": "consistent",
     "singleQuote": true,
