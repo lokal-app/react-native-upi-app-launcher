@@ -18,18 +18,22 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.WritableArray
 import com.facebook.react.bridge.WritableMap
+import com.facebook.react.module.annotations.ReactModule
 import java.io.ByteArrayOutputStream
 
 /**
  * Native module for UPI App Launcher
  * Supports both Old Architecture and New Architecture (TurboModule)
+ * Uses the Codegen-generated spec interface
  */
+@ReactModule(name = NativeUpiAppLauncherSpec.NAME)
 class UpiAppLauncherModule(reactContext: ReactApplicationContext) :
-    UpiAppLauncherModuleSpec(reactContext) {
+    NativeUpiAppLauncherSpec(reactContext) {
 
     companion object {
         private const val TAG = "UpiAppLauncher"
         private const val ICON_SIZE_DP = 48
+        private const val REQUEST_CODE_LAUNCH_UPI = 1001
     }
 
     /**
@@ -58,7 +62,7 @@ class UpiAppLauncherModule(reactContext: ReactApplicationContext) :
             val density = reactApplicationContext.resources.displayMetrics.density
             val width = (ICON_SIZE_DP * density).toInt()
             val height = (ICON_SIZE_DP * density).toInt()
-            
+
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             val canvas = Canvas(bitmap)
             drawable.setBounds(0, 0, canvas.width, canvas.height)
@@ -124,12 +128,32 @@ class UpiAppLauncherModule(reactContext: ReactApplicationContext) :
             resultCode: Int,
             data: Intent?
         ) {
-            handleActivityResult(resultCode, data)
+            // Only handle our specific request code to avoid conflicts
+            if (requestCode == REQUEST_CODE_LAUNCH_UPI) {
+                handleActivityResult(resultCode, data)
+            }
         }
     }
 
     init {
-        reactContext.addActivityEventListener(activityEventListener)
+        reactApplicationContext.addActivityEventListener(activityEventListener)
+    }
+
+    /**
+     * Clean up resources when module is destroyed
+     * Note: This method is deprecated but still needed for proper cleanup
+     */
+    override fun onCatalystInstanceDestroy() {
+        super.onCatalystInstanceDestroy()
+        // Reject any pending promise to prevent memory leaks
+        launchPromise?.let { promise ->
+            launchPromise = null
+            promise.reject(
+                "MODULE_DESTROYED",
+                "Module was destroyed before activity result was received"
+            )
+        }
+        reactApplicationContext.removeActivityEventListener(activityEventListener)
     }
 
     /**
@@ -142,18 +166,17 @@ class UpiAppLauncherModule(reactContext: ReactApplicationContext) :
             val upiIntent = Intent(Intent.ACTION_VIEW).apply {
                 data = Uri.parse("upi://pay")
             }
-            
+
             val resolveInfoList = packageManager.queryIntentActivities(
                 upiIntent, PackageManager.MATCH_DEFAULT_ONLY
             )
-            
+
             val appList: WritableArray = Arguments.createArray()
 
             for (resolveInfo in resolveInfoList) {
                 try {
                     val packageName = resolveInfo.activityInfo.packageName
                     val appName = resolveInfo.loadLabel(packageManager).toString()
-                    
                     val appMap: WritableMap = Arguments.createMap()
                     appMap.putString("packageName", packageName)
                     appMap.putString("appName", appName)
@@ -226,8 +249,7 @@ class UpiAppLauncherModule(reactContext: ReactApplicationContext) :
                 return
             }
 
-            @Suppress("DEPRECATION")
-            currentActivity.startActivityForResult(intent, 0)
+            currentActivity.startActivityForResult(intent, REQUEST_CODE_LAUNCH_UPI)
         } catch (e: Exception) {
             Log.e(TAG, "Error launching UPI app", e)
             launchPromise = null
